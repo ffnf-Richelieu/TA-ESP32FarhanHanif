@@ -1,0 +1,51 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+const char* ssid = "NAMA_WIFI_KAMU";
+const char* password = "PASSWORD_WIFI_KAMU";
+// Ganti dengan IP Address laptop kamu yang menjalankan Laravel (contoh: 192.168.1.10)
+const char* serverUrl = "http://192.168.x.x:8000/api/sensor"; 
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Serial2 untuk menerima dari Mega (RX2: Pin 16, TX2: Pin 17)
+  Serial2.begin(9600, SERIAL_8N1, 16, 17);
+
+  WiFi.begin(ssid, password);
+  Serial.print("Koneksi WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi Terhubung!");
+}
+
+void loop() {
+  // Cek apakah ada data masuk dari Mega
+  if (Serial2.available()) {
+    // Baca data sampai ketemu enter/newline
+    String jsonPayload = Serial2.readStringUntil('\n'); 
+    
+    Serial.println("Data diterima dari Mega: " + jsonPayload);
+
+    // Kirim ke server jika WiFi terhubung
+    if (WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      http.begin(serverUrl);
+      http.addHeader("Content-Type", "application/json");
+
+      // Kirim POST request
+      int httpResponseCode = http.POST(jsonPayload);
+
+      if (httpResponseCode > 0) {
+        Serial.printf("HTTP Response code: %d\n", httpResponseCode);
+      } else {
+        Serial.printf("Error code: %d\n", httpResponseCode);
+      }
+      http.end();
+    } else {
+      Serial.println("Koneksi WiFi terputus");
+    }
+  }
+}
