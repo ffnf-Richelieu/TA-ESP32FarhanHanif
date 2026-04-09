@@ -3,8 +3,9 @@
 
 const char* ssid = "NAMA_WIFI_KAMU";
 const char* password = "PASSWORD_WIFI_KAMU";
-// Ganti dengan IP Address laptop kamu yang menjalankan Laravel (contoh: 192.168.1.10)
-const char* serverUrl = "http://192.168.x.x:8000/api/sensor"; 
+//ENDPOINT URL untuk mengirim data sensor dan menerima data kontrol
+const char* urlSensor = "http://192.168.0.139:8000/api/sensor"; 
+const char* urlControl = "http://192.168.0.139:8000/api/control";
 
 void setup() {
   Serial.begin(115200);
@@ -22,30 +23,33 @@ void setup() {
 }
 
 void loop() {
-  // Cek apakah ada data masuk dari Mega
   if (Serial2.available()) {
-    // Baca data sampai ketemu enter/newline
     String jsonPayload = Serial2.readStringUntil('\n'); 
+    jsonPayload.trim(); 
     
-    Serial.println("Data diterima dari Mega: " + jsonPayload);
+    if (jsonPayload.startsWith("{") && jsonPayload.endsWith("}")) {
+      if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        
+        // --- 1. KIRIM DATA SENSOR (POST) ---
+        http.begin(urlSensor);
+        http.addHeader("Content-Type", "application/json");
+        http.POST(jsonPayload);
+        http.end();
 
-    // Kirim ke server jika WiFi terhubung
-    if (WiFi.status() == WL_CONNECTED) {
-      HTTPClient http;
-      http.begin(serverUrl);
-      http.addHeader("Content-Type", "application/json");
-
-      // Kirim POST request
-      int httpResponseCode = http.POST(jsonPayload);
-
-      if (httpResponseCode > 0) {
-        Serial.printf("HTTP Response code: %d\n", httpResponseCode);
-      } else {
-        Serial.printf("Error code: %d\n", httpResponseCode);
+        // --- 2. AMBIL DATA KONTROL (GET) ---
+        http.begin(urlControl);
+        int getCode = http.GET();
+        if (getCode == 200) {
+          String commandStr = http.getString();
+          // Lempar perintah ke Mega via Serial2
+          Serial2.println(commandStr); 
+          Serial.println("Perintah Web dikirim ke Mega: " + commandStr);
+        }
+        http.end();
       }
-      http.end();
     } else {
-      Serial.println("Koneksi WiFi terputus");
+      while(Serial2.available()) Serial2.read(); 
     }
   }
 }
