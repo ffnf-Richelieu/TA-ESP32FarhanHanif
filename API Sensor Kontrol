@@ -1,11 +1,11 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-const char* ssid = "NAMA_WIFI_KAMU";
-const char* password = "PASSWORD_WIFI_KAMU";
+const char* ssid = "Test";
+const char* password = "hahahaha";
 //ENDPOINT URL untuk mengirim data sensor dan menerima data kontrol
-const char* urlSensor = "http://192.168.0.139:8000/api/sensor"; 
-const char* urlControl = "http://192.168.0.139:8000/api/control";
+const char* urlSensor = "http://10.106.170.67:8000/api/sensor"; 
+const char* urlControl = "http://10.106.170.67:8000/api/control";
 
 void setup() {
   Serial.begin(115200);
